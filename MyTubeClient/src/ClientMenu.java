@@ -27,7 +27,7 @@ public class ClientMenu {
 	private JTextField searchTitle;
 	private JTextField textField;
 	private JTextField username_field;
-	private JPasswordField passwordField;
+	private JTextField passwordField;
 	private JTextField removeTitle;
 	private JTextField oldTitle;
 	private JTextField newTitle;
@@ -195,8 +195,13 @@ public class ClientMenu {
 		btnLogin.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				CardLayout cl = (CardLayout)CARD.getLayout();
-				cl.show(CARD, "Login");
+				if(!logged){
+					CardLayout cl = (CardLayout)CARD.getLayout();
+					cl.show(CARD, "Login");
+				}else{
+					lblYouNeedTo.setText("You're already logged");
+					lblYouNeedTo.setVisible(true);
+				}
 			}
 		});
 		btnLogin.setBounds(187, 96, 89, 23);
@@ -241,10 +246,6 @@ public class ClientMenu {
 				
 				try {
 					String searched = searchTitle.getText();
-					/*
-					ArrayList<String> results = new ArrayList<>();
-					results.add("PATATA");
-					results.add("PANDA");*/
 					ArrayList<String> results;
 					results = MainClient.searchVideo(server, searched);
 					String text_titles = "<html>----[RESULTS FOR  "+searched+"]----";
@@ -326,7 +327,7 @@ public class ClientMenu {
 		LoginPanel.add(username_field);
 		username_field.setColumns(10);
 		
-		passwordField = new JPasswordField();
+		passwordField = new JTextField();
 		passwordField.setBounds(180, 92, 106, 20);
 		LoginPanel.add(passwordField);
 		
@@ -338,20 +339,31 @@ public class ClientMenu {
 		lblPassword.setBounds(74, 95, 69, 14);
 		LoginPanel.add(lblPassword);
 		
+		JLabel lblErrorLogin = new JLabel("");
+		lblErrorLogin.setHorizontalAlignment(SwingConstants.CENTER);
+		lblErrorLogin.setFont(new Font("Tahoma", Font.BOLD, 11));
+		lblErrorLogin.setForeground(Color.RED);
+		lblErrorLogin.setBounds(166, 124, 131, 20);
+		LoginPanel.add(lblErrorLogin);
+		
 		JButton btnLogin_1 = new JButton("Login");
 		btnLogin_1.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				try {
 					user = username_field.getText();
-					pwd = String.valueOf(passwordField.getPassword());
+					pwd = passwordField.getText();
 					user_client = new Client(user, pwd);
+					System.out.println(pwd.toString());
 					boolean succes = MainClient.login(server, user_client);
 					if(succes) {
 						lblLoggedAs.setText("Logged as "+user);
+						logged = true;
 						CardLayout cl = (CardLayout)CARD.getLayout();
 						cl.previous(CARD);
 						lblYouNeedTo.setVisible(false);
+					}else{
+						lblErrorLogin.setText("LOGIN ERROR!");
 					}
 				} catch (RemoteException e1) {
 					e1.printStackTrace();
@@ -367,14 +379,19 @@ public class ClientMenu {
 			public void mouseClicked(MouseEvent e) {
 				try {
 					user = username_field.getText();
-					pwd = String.valueOf(passwordField.getPassword());
+					pwd = passwordField.getText();
 					user_client = new Client(user, pwd);
-					boolean succes = MainClient.register(server, user_client);
-					if(succes) {
-						lblLoggedAs.setText("Logged as "+user);
-						CardLayout cl = (CardLayout)CARD.getLayout();
-						cl.previous(CARD);
-						lblYouNeedTo.setVisible(false);
+					int succes = MainClient.register(server, user_client);
+					System.out.println(succes);
+					if(succes == 0) {
+						lblErrorLogin.setForeground(Color.green);
+						lblErrorLogin.setText("REGISTER CORRECT!");
+					}else if(succes == 1){
+						lblErrorLogin.setForeground(Color.red);
+						lblErrorLogin.setText("USER ALREADY REGISTERED!");
+					}else{
+						lblErrorLogin.setForeground(Color.red);
+						lblErrorLogin.setText("REGISTER ERROR!");
 					}
 				} catch (RemoteException e1) {
 					e1.printStackTrace();
@@ -546,6 +563,7 @@ public class ClientMenu {
 				lblPathUpload.setText("");
 				lblSearchResults.setText("");
 				lblYouNeedTo.setVisible(false);
+				lblErrorLogin.setText("");
 				CardLayout cl = (CardLayout)CARD.getLayout();
 				cl.show(CARD, "Menu");
 			}

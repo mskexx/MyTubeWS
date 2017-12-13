@@ -11,7 +11,7 @@ public class Client extends UnicastRemoteObject implements IClient{
 	protected Client(String name, String pass) throws RemoteException {
 		super();
 		user = name;
-		pass = pwd;
+		pwd = pass;
 	}
 
 	@Override

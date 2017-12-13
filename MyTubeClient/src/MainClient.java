@@ -18,42 +18,18 @@ import javax.swing.JFrame;
 public class MainClient {
 	static JFileChooser fileChooser = new JFileChooser();
 	
-	protected MainClient(){
-		
+	protected MainClient(){		
 	}
-	public static void main(String[] args) throws Exception{
-		/*
-		System.out.print("Introduce IP of the server:");
-		String ip = br.readLine();
-		System.out.print("Introduce Port of the server:");
-		String port = br.readLine();
-		String registryURL = "rmi://"+ip+":"+port;
-		String[] names = Naming.list(registryURL);
-		System.out.println("_____ SERVERS AVAILABLES ____");
-		for(String s: names) {
-			s = s.split(port+"/")[1];
-			System.out.println(s);
-		}
-		System.out.println("______________________________");
-		System.out.print("Insert your favourite server: ");
-		String server_name = br.readLine();
-		
-		server = (IServer) Naming.lookup(registryURL+"/"+server_name);
-		user = new Client();
-		server.login(user);
-		videos = new ArrayList<String>();*/
-	}
+
 	protected static boolean login(IServer server, IClient user) throws RemoteException {
-		if(server.loginUser(user) > 0){
+		int status = server.loginUser(user);
+		if(status == 0){
 			return true;
 		}
 		return false;
 	}
-	protected static boolean register(IServer server, IClient user) throws RemoteException{
-		if(server.registerUser(user) > 0){
-			return true;
-		}
-		return false;
+	protected static int register(IServer server, IClient user) throws RemoteException{
+		return server.registerUser(user);
 	}
 	protected static IServer connect(String ip, String port) throws Exception {
 		try{
@@ -65,7 +41,6 @@ public class MainClient {
 				s = s.split(port+"/")[1];
 				System.out.println(s);
 				server_name = s;
-
 			}
 			//String server_name = br.readLine();
 			IServer server = (IServer) Naming.lookup(registryURL+"/"+server_name);
