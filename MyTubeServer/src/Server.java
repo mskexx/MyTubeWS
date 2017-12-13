@@ -1,10 +1,17 @@
+
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.ProtocolException;
+import java.net.URL;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -13,9 +20,12 @@ import java.nio.file.Paths;
 import java.rmi.*;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.ws.rs.core.MediaType;
+import com.google.gson.*;
 
 public class Server extends UnicastRemoteObject implements IServer{
 
@@ -25,7 +35,7 @@ public class Server extends UnicastRemoteObject implements IServer{
 	private Map<String, IClient> uploader = new HashMap<String, IClient>();
 	private List<IClient> clients = new ArrayList<IClient>();
 	private List<IServer> servers = new ArrayList<IServer>();
-	private Map<String, String> logins= new HashMap<String, String>();
+	private Map<String, IClient> logins= new HashMap<String, IClient>();
 	private int num_server = 0;
 	private String url_server;
 	private int gen_key = 0;
@@ -33,20 +43,68 @@ public class Server extends UnicastRemoteObject implements IServer{
 	protected Server() throws RemoteException {
 		super();
 	}
+	
 	@Override
 	public int registerUser(IClient user_client) throws RemoteException{
-		if(!logins.containsKey(user_client.getUsername())) {
-			logins.put(user_client.getUsername(), user_client.getPassword());
-			return 1;
+		String name = user_client.getUsername();
+		String pwd = user_client.getPassword();
+		System.out.println("REGISTERING USER:"+name);
+		try {
+			URL url = new URL ("http://localhost:8080/MyTubeWebserviceWeb/rest/user");
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setDoOutput(true);
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            OutputStream os = conn.getOutputStream();
+            
+            String user_data = name +";"+ pwd.toString();
+            os.write(user_data.getBytes());
+            os.flush();
+
+            int status = conn.getResponseCode();
+            conn.disconnect();
+            
+			if(status == 200){
+				return 0;
+			}
+			else if(status == 201){
+				return 1;
+			}
+			return -1;
+
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 		return -1;
 	}
 	@Override
 	public int loginUser(IClient user_client) throws RemoteException{
-		if(logins.containsKey(user_client.getUsername())) {
-			if(logins.get(user_client.getUsername()) == user_client.getPassword()) {
+		String name = user_client.getUsername();
+		String pwd = user_client.getPassword();
+		System.out.println("LOGIN USER:"+name);
+		try {
+			URL url = new URL ("http://localhost:8080/MyTubeWebserviceWeb/rest/user/"+name);
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestMethod("GET");
+			conn.setRequestProperty("Accept", "application/json");
+		
+			if(conn.getResponseCode() != 200){
+				System.out.println("No user registered with this name");
 				return 1;
 			}
+			
+			BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+			String output = br.readLine();
+			conn.disconnect();
+			String[] u = output.split(";");
+
+			if(pwd.equals(u[1])){
+				logins.put(name, user_client);
+				return 0;
+			}
+			return -1;
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 		return -1;
 	}
@@ -68,9 +126,28 @@ public class Server extends UnicastRemoteObject implements IServer{
 			return this.url_server;
 		}
 	}
+	
 	@Override
 	public String getUrl() throws RemoteException {
-		return this.url_server;
+		try {
+			URL url = new URL ("http://localhost:8080/MyTubeWebserviceWeb/rest/user");
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestMethod("POST");
+			conn.setRequestProperty("Accept", MediaType.APPLICATION_JSON);
+		
+			if(conn.getResponseCode() != 200)
+				return new String();
+			
+			BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+			String output = br.readLine();
+			conn.disconnect();
+			for(String x: output.split(",")){
+				System.out.println(x);
+			}
+			
+		} catch (Exception e) { return "HOLI"; }
+		return "HOLI";
+		
 	}
 	@Override 
 	public void setUrl(String url) throws RemoteException{
@@ -156,16 +233,34 @@ public class Server extends UnicastRemoteObject implements IServer{
 
 	@Override
 	public ArrayList<String> search(String description) throws RemoteException {
-		ArrayList<String> match = new ArrayList<String>();
-		ArrayList<String> temp = new ArrayList<String>();
-		match.addAll(globalSearch(description));
-		for(IServer s: servers) {
-			temp = s.globalSearch(description);
-			match.removeAll(temp);
-			match.addAll(temp);
+		System.out.println("SEARCHING BY:" + description);
+		try {
+			URL url = new URL ("http://localhost:8080/MyTubeWebserviceWeb/rest/videos/title/"+description);
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestMethod("GET");
+			conn.setRequestProperty("Accept", "application/json");
+		
+			if(conn.getResponseCode() != 200){
+				System.out.println("Error on request");
+				return null;
+			}
+			
+			BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+			String output = br.readLine();
+			conn.disconnect();
+			
+			Gson gs = new Gson();
+			String[] titles = gs.fromJson(output, String[].class);
+			ArrayList<String> videos = new ArrayList<>(Arrays.asList(titles));
+			System.out.println(output);
+			return videos;
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
-		return match;
+		return null;
 	}
+	
+	
 
 	
 	public void loadDB(File f) {

@@ -1,3 +1,4 @@
+
 import java.rmi.*;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -21,7 +22,7 @@ public class MainServer {
 	        String url = "//"+ip+":"+RMIPortNum;
 	        String master_url = url +"/MyTubeMaster";
 	        if(master){
-	        	System.out.print("I'll be the master of the REGISTRY HUEHUEHUE");
+	        	System.out.print("MASTER OF THE REGISTRY");
 	        	Server sv = new Server();
 	        	Naming.bind(master_url, sv);
 	        	sv.setUrl(master_url);
