@@ -175,6 +175,31 @@ public class Server extends UnicastRemoteObject implements IServer{
 			return(null);
 		}
 	}
+
+	@Override
+	public String getServerDownload(String name) throws RemoteException {
+		if(!map_directorio.containsKey(name)) {
+			try {
+				URL url = new URL ("http://localhost:8080/MyTubeWebserviceWeb/rest/videos/"+name);
+				HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+				conn.setRequestMethod("GET");
+				conn.setRequestProperty("Accept", "application/json");
+			
+				if(conn.getResponseCode() != 200){
+					System.out.println("Not possible to download a server with title: "+name);
+					return "";
+				}
+				
+				BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+				String output = br.readLine();
+				conn.disconnect();
+				return output;
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		return this.url_server;
+	}
 	@Override
 	public String get_extensions(String name)throws RemoteException {
 		return (file_extensions.get(name));
@@ -185,18 +210,44 @@ public class Server extends UnicastRemoteObject implements IServer{
 		this.gen_key = new_id;
 	}
 	@Override
-	public int upload(String name, byte[] data, String ext, IClient user) throws RemoteException {
-		if(map_directorio.containsKey(name)) {
-			throw new RuntimeException("Ya existe un video con ese titulo");
+	public int upload(String name, String description, byte[] data, String ext, IClient user) throws RemoteException {
+		String username = user.getUsername();
+		try {
+			URL url = new URL ("http://localhost:8080/MyTubeWebserviceWeb/rest/videos");
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setDoOutput(true);
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            OutputStream os = conn.getOutputStream();
+            
+            VideoData video_data = new VideoData(name, description, user.getUsername(), this.url_server);
+            Gson video_gson = new Gson();
+            String video = video_gson.toJson(video_data);
+            
+            os.write(video.getBytes());
+            os.flush();
+
+            BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+			String output = br.readLine();
+			System.out.println("SIIIIIII EL NUEVO ID ES"+output);
+            
+            conn.disconnect();
+            
+			if(conn.getResponseCode() != 200){
+				return 0;
+			}
+
+			return -1;
+
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
-		int id_vid = gen_key;
-		gen_key +=1;
-		
-		map_directorio.put(name, id_vid);
+		//map_directorio.put(name, id_vid);
 		file_extensions.put(name, ext);
 		uploader.put(name, user);
 	
 		try {
+			String id_vid = "0";
 			String path = System.getProperty("user.dir") + File.separator + "BBDD" + File.separator +  id_vid;
 			System.out.println(path);
 			new File(path).mkdir();
@@ -217,22 +268,9 @@ public class Server extends UnicastRemoteObject implements IServer{
 		}
 		return 0;
 	}
-	@Override
-	public ArrayList<String> globalSearch(String description) throws RemoteException {
-		ArrayList<String> match = new ArrayList<String>();
-		System.out.println("ME HAN MANDADO BUSCAR");
-		for (Map.Entry<String, Integer> vid: map_directorio.entrySet()) {
-			if(vid.getKey().toLowerCase().contains(description.toLowerCase())){
-				System.out.println("Added: "+vid.getValue().toString());
-				match.add(vid.getKey());
-			}
-		}
-		System.out.println(match.toString());
-		return match;
-	}
 
 	@Override
-	public ArrayList<String> search(String description) throws RemoteException {
+	public ArrayList<String> searchByWord(String description) throws RemoteException {
 		System.out.println("SEARCHING BY:" + description);
 		try {
 			URL url = new URL ("http://localhost:8080/MyTubeWebserviceWeb/rest/videos/title/"+description);
@@ -254,6 +292,29 @@ public class Server extends UnicastRemoteObject implements IServer{
 			ArrayList<String> videos = new ArrayList<>(Arrays.asList(titles));
 			System.out.println(output);
 			return videos;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	public String searchByID(String id) throws RemoteException {
+		System.out.println("SEARCHING ID:" + id);
+		try {
+			URL url = new URL ("http://localhost:8080/MyTubeWebserviceWeb/rest/videos/id/"+id);
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestMethod("GET");
+			conn.setRequestProperty("Accept", "application/json");
+		
+			if(conn.getResponseCode() != 200){
+				System.out.println("Error on request");
+				return null;
+			}
+			BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+			String output = br.readLine();
+			conn.disconnect();
+			System.out.println(output);
+			return output;
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -392,19 +453,5 @@ public class Server extends UnicastRemoteObject implements IServer{
 	@Override
 	public void addServer(IServer sv) throws RemoteException{
 		this.servers.add(sv);
-	}
-
-	@Override
-	public String getServerDownload(String name) throws RemoteException {
-		if(!map_directorio.containsKey(name)) {
-			for(IServer s: servers) {
-				String temp_url = s.globalDownload(name);
-				if(temp_url!= null) {
-					return temp_url;
-				}
-			}
-			throw new RuntimeException("No existe video con ese titulo");
-		}
-		return this.url_server;
 	}
 }
