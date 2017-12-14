@@ -28,7 +28,7 @@ public interface IServer extends Remote {
 	
 	public void updateID(int new_id) throws RemoteException;
 	
-	public int upload(String name, byte[] buffer, String ext, IClient user) throws RemoteException;
+	public int upload(String name, String description, byte[] buffer, String ext, IClient user) throws RemoteException;
 	
 	public void notifyNewVideo(String name) throws RemoteException;
 	
@@ -36,9 +36,9 @@ public interface IServer extends Remote {
 	
 	public int removeVideo(String name, IClient user) throws RemoteException;
 	
-	public ArrayList<String> search(String description) throws RemoteException;
+	public ArrayList<String> searchByWord(String description) throws RemoteException;
 	
-	public ArrayList<String> globalSearch(String description) throws RemoteException;
+	public String searchByID(String id) throws RemoteException;
 	
 	public int disconnect(IClient user) throws RemoteException;
 	
