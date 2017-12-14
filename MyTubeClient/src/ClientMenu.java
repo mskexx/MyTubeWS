@@ -4,6 +4,7 @@ import javax.swing.JFrame;
 import javax.swing.JTextField;
 import javax.swing.JPanel;
 import javax.swing.JLabel;
+import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 
@@ -18,6 +19,8 @@ import java.awt.event.MouseEvent;
 import java.io.File;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
+import javax.swing.JCheckBox;
+import javax.swing.JRadioButton;
 
 public class ClientMenu {
 
@@ -232,6 +235,21 @@ public class ClientMenu {
 		SearchPanel.add(lblSearchAVideo);
 		lblSearchAVideo.setFont(new Font("Tahoma", Font.PLAIN, 13));
 		
+		JRadioButton rdbtnByTitle = new JRadioButton("By title");
+		rdbtnByTitle.setHorizontalAlignment(SwingConstants.LEFT);
+		rdbtnByTitle.setBounds(346, 100, 109, 23);
+		rdbtnByTitle.setSelected(true);
+		SearchPanel.add(rdbtnByTitle);
+		
+		JRadioButton rdbtnById = new JRadioButton("By ID");
+		rdbtnById.setHorizontalAlignment(SwingConstants.LEFT);
+		rdbtnById.setBounds(346, 126, 109, 23);
+		SearchPanel.add(rdbtnById);
+		
+		ButtonGroup video_group = new ButtonGroup();
+		video_group.add(rdbtnById);
+		video_group.add(rdbtnByTitle);
+		
 		JLabel lblSearchResults = new JLabel("");
 		lblSearchResults.setBounds(38, 100, 275, 104);
 		SearchPanel.add(lblSearchResults);
@@ -246,8 +264,16 @@ public class ClientMenu {
 				
 				try {
 					String searched = searchTitle.getText();
-					ArrayList<String> results;
-					results = MainClient.searchVideo(server, searched);
+					ArrayList<String> results = new ArrayList<>();
+					String res_id;
+					if(rdbtnById.isSelected()) {
+						res_id = MainClient.searchVideoID(server, searched);
+						if(res_id != null)
+							results.add(res_id);
+					}
+					else {
+						results = MainClient.searchVideo(server, searched);
+					}
 					String text_titles = "<html>----[RESULTS FOR  "+searched+"]----";
 					for(String x: results) {
 						text_titles += "<br>    · "+ x;
@@ -290,7 +316,7 @@ public class ClientMenu {
 		btnSelectFile.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent arg0) {
-				//uploadFile = MainClient.uploadVideo();
+				uploadFile = MainClient.uploadVideo();
 				lblPathUpload.setText(uploadFile.getAbsolutePath());
 			}
 		});

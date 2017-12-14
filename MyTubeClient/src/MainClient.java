@@ -96,7 +96,7 @@ public class MainClient {
 			input.read(buffer,0,buffer.length);
 			input.close();
 			
-			int correct = server.upload(title, buffer, ext, user);
+			int correct = server.upload(title,"TEST desc", buffer, ext, user);
 			if (correct == 0){
 				System.out.println("--> SE HA SUBIDO CORRECTAMENTE ");
 				return true;
@@ -110,7 +110,7 @@ public class MainClient {
 	protected static boolean downloadVideo(IServer server, String title) {
 		try {
 			String sv_url = server.getServerDownload(title);
-			IServer server_download = (IServer) Naming.lookup(sv_url);
+			IServer server_download = (IServer) Naming.lookup("//"+sv_url);
 			
 			byte[] filedata = server_download.download(title);
 			String path = System.getProperty("user.dir") + File.separator + "Videos";
@@ -134,7 +134,15 @@ public class MainClient {
 	
 	protected static ArrayList<String> searchVideo(IServer server, String title) throws RemoteException {
 		try {
-			return server.search(title);
+			return server.searchByWord(title);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	protected static String searchVideoID(IServer server, String id) throws RemoteException {
+		try {
+			return server.searchByID(id);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
