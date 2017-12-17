@@ -22,8 +22,6 @@ public interface IServer extends Remote {
 	
 	public String getServerDownload(String name) throws RemoteException;
 	
-	public String globalDownload(String name) throws RemoteException;
-	
 	public String get_extensions(String name)throws RemoteException;
 	
 	public int upload(String name, String description, byte[] buffer, String ext, IClient user) throws RemoteException;
@@ -40,7 +38,4 @@ public interface IServer extends Remote {
 	
 	public String addMe(IServer sv, String url) throws RemoteException;
 
-	public void setServerList(List<IServer> servers) throws RemoteException;
-	
-	public void addServer(IServer sv) throws RemoteException;
 }
