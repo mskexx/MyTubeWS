@@ -26,15 +26,11 @@ public interface IServer extends Remote {
 	
 	public String get_extensions(String name)throws RemoteException;
 	
-	public void updateID(int new_id) throws RemoteException;
-	
 	public int upload(String name, String description, byte[] buffer, String ext, IClient user) throws RemoteException;
-	
-	public void notifyNewVideo(String name) throws RemoteException;
 	
 	public boolean modifyTitle(String name, String new_name, IClient user) throws RemoteException;
 	
-	public int removeVideo(String name, IClient user) throws RemoteException;
+	public boolean removeVideo(String name, IClient user) throws RemoteException;
 	
 	public ArrayList<String> searchByWord(String description) throws RemoteException;
 	
