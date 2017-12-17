@@ -52,8 +52,11 @@ public class MainClient {
 	
 	protected static boolean removeVideo(IServer server, String title, IClient user) {
 		try {
-			server.removeVideo(title, user);
-			return true;
+			System.out.println("[DELETE] Server delete: "+ title);
+			if(server.removeVideo(title, user)){
+				return true;
+			}
+			return false;
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

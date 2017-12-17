@@ -517,7 +517,7 @@ public class ClientMenu {
 		ModifyPanel.add(newTitle);
 		newTitle.setColumns(10);
 		
-		JLabel lblOldTitle = new JLabel("Old Title");
+		JLabel lblOldTitle = new JLabel("Title");
 		lblOldTitle.setBounds(130, 29, 73, 14);
 		ModifyPanel.add(lblOldTitle);
 		
