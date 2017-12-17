@@ -226,7 +226,7 @@ public class WebService {
 	
 	//GET (Download video)
 	@GET
-	@Path("/video/title/{video}")
+	@Path("/video/{video}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response downloadVideo(@PathParam("video") String title){
 		try {
@@ -259,14 +259,14 @@ public class WebService {
 	
 	//PUT (modify video)
 	@PUT
-	@Path("/video/title/{video}/modify")
+	@Path("/video/{video}/modify")
 	public Response modifyVideo(@PathParam("video") String title, VideoData modification){
 		try {
 			String username = modification.getVid_owner();
 			String new_title = modification.getVid_title();
-			
+			System.out.println("Modifying video: " + title);
 			Statement st = getStatement();
-			int rows = st.executeUpdate("UPDATE mytube_videos SET title="+title+" WHERE title="+new_title+" AND username_owner=+'"+username+"'");
+			int rows = st.executeUpdate("UPDATE mytube_videos SET title='"+new_title+"' WHERE title='"+title+"' AND username_owner='"+username+"'");
 			if(rows==1){
 				return Response.status(200).build();
 			}
@@ -279,11 +279,13 @@ public class WebService {
 	
 	//DELETE (Remove video)
 	@DELETE
-	@Path("/video/title/{video}/remove")
+	@Path("/video/{video}/remove")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response deleteVideo(@PathParam("video") String title, VideoData user){
 		try {
 			Statement st = getStatement();
+			System.out.println("DELETIN VIDEO: "+title);
+			title = title.replace("+", " ");
 			int rows = st.executeUpdate("DELETE FROM mytube_videos WHERE title='"+title+"' AND username_owner='"+user.getVid_owner()+"'");
 			if(rows==1){
 				return Response.status(200).build();
