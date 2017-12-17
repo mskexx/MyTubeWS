@@ -32,13 +32,11 @@ public class Server extends UnicastRemoteObject implements IServer{
 	private static final long serialVersionUID = 1L;
 	private Map<String, Integer> map_directorio = new HashMap<String, Integer>();
 	private Map<String, String> file_extensions = new HashMap<String, String>();
-	private Map<String, IClient> uploader = new HashMap<String, IClient>();
 	private List<IClient> clients = new ArrayList<IClient>();
 	private List<IServer> servers = new ArrayList<IServer>();
 	private Map<String, IClient> logins= new HashMap<String, IClient>();
 	private int num_server = 0;
 	private String url_server;
-	private int gen_key = 0;
 
 	protected Server() throws RemoteException {
 		super();
@@ -89,6 +87,7 @@ public class Server extends UnicastRemoteObject implements IServer{
 			conn.setRequestProperty("Accept", "application/json");
 		
 			if(conn.getResponseCode() != 200){
+				conn.disconnect();
 				System.out.println("No user registered with this name");
 				return 1;
 			}
@@ -135,8 +134,10 @@ public class Server extends UnicastRemoteObject implements IServer{
 			conn.setRequestMethod("POST");
 			conn.setRequestProperty("Accept", MediaType.APPLICATION_JSON);
 		
-			if(conn.getResponseCode() != 200)
+			if(conn.getResponseCode() != 200){
+				conn.disconnect();
 				return new String();
+			}
 			
 			BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
 			String output = br.readLine();
@@ -158,10 +159,12 @@ public class Server extends UnicastRemoteObject implements IServer{
 	public byte[] download(String name) throws RemoteException {
 		try
 		{
+			System.out.println(map_directorio);
+			System.out.println(file_extensions);
 			int id_vid = map_directorio.get(name);
 			String ext = file_extensions.get(name);
 			String path = System.getProperty("user.dir") + File.separator + "BBDD" + File.separator +  id_vid;
-			File file = new File(path + File.separator + name + ext);
+			File file = new File(path + File.separator + id_vid + ext);
 			byte buffer[] = new byte[(int)file.length()];
 			BufferedInputStream input = new BufferedInputStream(new FileInputStream(file));
 			input.read(buffer,0,buffer.length);
@@ -180,14 +183,19 @@ public class Server extends UnicastRemoteObject implements IServer{
 	public String getServerDownload(String name) throws RemoteException {
 		if(!map_directorio.containsKey(name)) {
 			try {
-				URL url = new URL ("http://localhost:8080/MyTubeWebserviceWeb/rest/videos/"+name);
+				URL url = new URL ("http://localhost:8080/MyTubeWebserviceWeb/rest/video/"+name);
 				HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 				conn.setRequestMethod("GET");
 				conn.setRequestProperty("Accept", "application/json");
-			
-				if(conn.getResponseCode() != 200){
-					System.out.println("Not possible to download a server with title: "+name);
-					return "";
+				
+				int code = conn.getResponseCode();
+				if(code != 200){
+					if(code == 401){
+						conn.disconnect();
+						return "Not possible to download a video with title: "+name;
+					}
+					conn.disconnect();
+					return "No server for this video";
 				}
 				
 				BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
@@ -206,14 +214,9 @@ public class Server extends UnicastRemoteObject implements IServer{
 	}
  
 	@Override
-	public void updateID(int new_id) throws RemoteException {
-		this.gen_key = new_id;
-	}
-	@Override
 	public int upload(String name, String description, byte[] data, String ext, IClient user) throws RemoteException {
-		String username = user.getUsername();
 		try {
-			URL url = new URL ("http://localhost:8080/MyTubeWebserviceWeb/rest/videos");
+			URL url = new URL ("http://localhost:8080/MyTubeWebserviceWeb/rest/video");
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 			conn.setDoOutput(true);
             conn.setRequestMethod("POST");
@@ -228,45 +231,35 @@ public class Server extends UnicastRemoteObject implements IServer{
             os.flush();
 
             BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-			String output = br.readLine();
-			System.out.println("SIIIIIII EL NUEVO ID ES"+output);
+			String id_video = br.readLine();
+			System.out.println("SIIIIIII EL NUEVO ID ES"+ id_video);
             
             conn.disconnect();
             
 			if(conn.getResponseCode() != 200){
-				return 0;
+				conn.disconnect();
+				return -1;
 			}
-
-			return -1;
+			
+			map_directorio.put(name, Integer.parseInt(id_video));
+			file_extensions.put(name, ext);
+			
+			String path = System.getProperty("user.dir") + File.separator + "BBDD" + File.separator +  Integer.parseInt(id_video);
+			System.out.println(path);
+			
+			new File(path).mkdir();
+			String pathFile = path + File.separator + Integer.parseInt(id_video) + ext;
+			FileOutputStream vid_file = new FileOutputStream(pathFile);
+			vid_file.write(data);
+			vid_file.close();
+				
+			System.out.println("Se ha subido " + name);
+			return 0;
 
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		//map_directorio.put(name, id_vid);
-		file_extensions.put(name, ext);
-		uploader.put(name, user);
-	
-		try {
-			String id_vid = "0";
-			String path = System.getProperty("user.dir") + File.separator + "BBDD" + File.separator +  id_vid;
-			System.out.println(path);
-			new File(path).mkdir();
-			String pathFile = path + File.separator + name + ext;
-			FileOutputStream vid_file = new FileOutputStream(pathFile);
-			vid_file.write(data);
-			vid_file.close();
-			
-		} catch(Exception e) {
-			 e.printStackTrace();
-			 return -1;
-		}
-		notifyNewVideo(name);
-		System.out.println("Se ha subido " + name);
-		for(IServer sv: servers) {
-			sv.updateID(gen_key);
-			sv.notifyNewVideo(name);
-		}
-		return 0;
+		return -1;
 	}
 
 	@Override
@@ -279,6 +272,7 @@ public class Server extends UnicastRemoteObject implements IServer{
 			conn.setRequestProperty("Accept", "application/json");
 		
 			if(conn.getResponseCode() != 200){
+				conn.disconnect();
 				System.out.println("Error on request");
 				return null;
 			}
@@ -333,7 +327,6 @@ public class Server extends UnicastRemoteObject implements IServer{
 		});
 		for(File x : dir){
 			int id = Integer.parseInt(x.getName());
-			gen_key = id + 1;
 			File[ ] vid = x.listFiles();
 			if(vid.length > 0) {
 				File vid_file = vid[0];
@@ -351,63 +344,82 @@ public class Server extends UnicastRemoteObject implements IServer{
 	@Override
 	public int disconnect(IClient user) throws RemoteException {
 		clients.remove(user);
-		for(IServer sv: servers) {
-			sv.disconnect(user);
-		}
 		return 0;
 	}
-
+	
 	@Override
-	public boolean modifyTitle(String name, String new_name, IClient user) throws RemoteException {
-		if(user.equals(uploader.get(name))){
-			if(map_directorio.containsKey(name)) {
-				
-				map_directorio.put(new_name, map_directorio.get(name));
-				map_directorio.remove(name);
-				
-				file_extensions.put(new_name, file_extensions.get(name));
-				file_extensions.remove(name);
-				
-				uploader.put(new_name, uploader.get(name));
-				uploader.remove(name);
-				
-				Path source = Paths.get(System.getProperty("user.dir") + File.separator + "BBDD" + File.separator
-							+  map_directorio.get(new_name) + File.separator + name + file_extensions.get(new_name));
-				try {
-					Files.move(source, source.resolveSibling(new_name+ file_extensions.get(new_name)));
-					return true;
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			
-			}else {
-				user.notify("Video not found");
-				return false;
-			}
-		}
-		else {
-			user.notify("You have no permission to modify this video");
+	public boolean modifyTitle(String title, String new_title, IClient user) throws RemoteException{
+		try {
+			URL url = new URL ("http://localhost:8080/MyTubeWebserviceWeb/rest/video/"+title);
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setDoOutput(true);
+            conn.setRequestMethod("PUT");
+            conn.setRequestProperty("Content-Type", "application/json");
+            OutputStream os = conn.getOutputStream();
+            
+            VideoData video_data = new VideoData(new_title, "NO INFO", user.getUsername(), "NO INFO");
+            Gson video_gson = new Gson();
+            String video = video_gson.toJson(video_data);
+            
+            os.write(video.getBytes());
+            os.flush();
+            int status = conn.getResponseCode();
+            conn.disconnect();
+            if(status != 200){
+            	return false;
+            }
+            //COSAS A MODIFICAR
+            int id_video = map_directorio.get(title);
+            map_directorio.remove(title);
+            map_directorio.put(new_title, id_video);
+            
+            String ext = file_extensions.get(title);
+            file_extensions.remove(title);
+            file_extensions.put(new_title, ext);
+            return true;
+            
+		} catch (IOException e) {
+			e.printStackTrace();
 			return false;
 		}
-		return false;
 	}
 
+
 	@Override
-	public int removeVideo(String name, IClient user) throws RemoteException {
-		if(user.equals(uploader.get(name))){
-			System.out.println("Se va a borrar el video: " + name);
+	public boolean removeVideo(String title, IClient user) throws RemoteException {
+			System.out.println("DELETING VIDEO: " + title);
+			int id_video = map_directorio.get(title);
 			Path source = Paths.get(System.getProperty("user.dir") + File.separator + "BBDD" + File.separator
-					+  map_directorio.get(name));
+					+  id_video);
 			Path file_source = Paths.get(System.getProperty("user.dir") + File.separator + "BBDD" + File.separator
-					+  map_directorio.get(name) + File.separator + name + file_extensions.get(name));
+					+  id_video + File.separator + id_video + file_extensions.get(title));
 			try {
+				URL url = new URL ("http://localhost:8080/MyTubeWebserviceWeb/rest/video/"+title);
+				HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+				conn.setDoOutput(true);
+	            conn.setRequestMethod("DELETE");
+	            conn.setRequestProperty("Content-Type", "application/json");
+	            OutputStream os = conn.getOutputStream();
+	            
+	            VideoData video_data = new VideoData(title, "NO INFO", user.getUsername(), this.url_server);
+	            Gson video_gson = new Gson();
+	            String video = video_gson.toJson(video_data);
+	            
+	            os.write(video.getBytes());
+	            os.flush();
+	            int status = conn.getResponseCode();
+	            conn.disconnect();
+	            if(status != 200){
+	            	return false;
+	            }
+				
 				Files.delete(file_source);
 			    Files.delete(source);
-			    System.out.println("Video borrado: " + name);
+			    System.out.println("Video borrado: " + title);
 			    
-				map_directorio.remove(name);
-				file_extensions.remove(name);
-				uploader.remove(name);
+				map_directorio.remove(title);
+				file_extensions.remove(title);
+				return true;
 			
 			} catch (NoSuchFileException x) {
 			    System.err.format("%s: no such" + " file or directory%n", source);
@@ -416,16 +428,9 @@ public class Server extends UnicastRemoteObject implements IServer{
 			} catch (IOException x) {
 			    System.err.println(x);
 			}
+			return false;
 		}
-		return 0;
-	}
 	
-	@Override
-	public void notifyNewVideo(String name) throws RemoteException{
-		for(IClient cl: clients) {
-			cl.notify("New video uploaded to the server: "+ name);
-		}
-	}
 	@Override
 	public String addMe(IServer sv, String url) throws RemoteException {
 		try {
