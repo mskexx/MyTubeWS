@@ -110,7 +110,7 @@ public class WebService {
 	}
 	
 	
-	//GET (Search videos)
+	//GET (Search videos Title / Description)
 	@GET
 	@Path("/videos/title/{title}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -129,7 +129,7 @@ public class WebService {
 			return Response.status(500).entity("Database ERROR" + se.toString()).build();
 		}
 	}
-	//GET (Search videos)
+	//GET (Search videos ID)
 	@GET
 	@Path("/videos/id/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -148,9 +148,29 @@ public class WebService {
 			return Response.status(500).entity("Database ERROR" + se.toString()).build();
 		}
 	}
+
+	//GET (Search videos USER)
+	@GET
+	@Path("/videos/user/{user}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response searchVideosByUser(@PathParam("user") String user){
+		try {
+			Statement st = getStatement();
+			System.out.println("[SEARCH BY USER] "+ user);
+			ResultSet rs = st.executeQuery("SELECT title FROM mytube_videos WHERE username_owner='"+user+"';");
+			List<String> videos = new ArrayList<>();
+			while(rs.next()){		
+				videos.add(rs.getString("title"));
+			}
+			return Response.status(200).entity(videos).build();
+			
+		} catch (SQLException se) {
+			return Response.status(500).entity("Database ERROR" + se.toString()).build();
+		}
+	}
 	//POST (Upload video)
 	@POST
-	@Path("/videos")
+	@Path("/video")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response uploadVideo(VideoData video_data){
 		try {
@@ -206,9 +226,9 @@ public class WebService {
 	
 	//GET (Download video)
 	@GET
-	@Path("/videos/{video}")
+	@Path("/video/title/{video}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response donwloadVideo(@PathParam("video") String title){
+	public Response downloadVideo(@PathParam("video") String title){
 		try {
 			int id_server = 0;
 			String url_server;
@@ -225,7 +245,7 @@ public class WebService {
 			st = getStatement();
 			rs = st.executeQuery("SELECT url_server FROM mytube_servers WHERE id_server ="+id_server);
 			if(!rs.isBeforeFirst()){
-				return Response.status(401).entity("No server with this ID "+ id_server).build();
+				return Response.status(402).entity("No server with this ID: "+ id_server).build();
 			}else{
 				rs.next();
 				url_server = rs.getString("url_server");
@@ -237,15 +257,20 @@ public class WebService {
 		} 
 	}
 	
-	//PUT (Upload video)
+	//PUT (modify video)
 	@PUT
-	@Path("/videos/{video}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response modifyVideo(@PathParam("video") String title){
+	@Path("/video/title/{video}/modify")
+	public Response modifyVideo(@PathParam("video") String title, VideoData modification){
 		try {
+			String username = modification.getVid_owner();
+			String new_title = modification.getVid_title();
+			
 			Statement st = getStatement();
-			ResultSet rs = st.executeQuery("SELECT username FROM mytube_users;");
-			return Response.status(400).entity("NOT IMPLEMENTED").build();
+			int rows = st.executeUpdate("UPDATE mytube_videos SET title="+title+" WHERE title="+new_title+" AND username_owner=+'"+username+"'");
+			if(rows==1){
+				return Response.status(200).build();
+			}
+			return Response.status(401).build();
 			
 		} catch (SQLException se) {
 			return Response.status(500).entity("Database ERROR" + se.toString()).build();
@@ -254,13 +279,16 @@ public class WebService {
 	
 	//DELETE (Remove video)
 	@DELETE
-	@Path("/videos/{video}")
+	@Path("/video/title/{video}/remove")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response deleteVideo(@PathParam("video") String title){
+	public Response deleteVideo(@PathParam("video") String title, VideoData user){
 		try {
 			Statement st = getStatement();
-			ResultSet rs = st.executeQuery("SELECT username FROM mytube_users;");
-			return Response.status(400).entity("NOT IMPLEMENTED").build();
+			int rows = st.executeUpdate("DELETE FROM mytube_videos WHERE title='"+title+"' AND username_owner='"+user.getVid_owner()+"'");
+			if(rows==1){
+				return Response.status(200).build();
+			}
+			return Response.status(401).build();
 			
 		} catch (SQLException se) {
 			return Response.status(500).entity("Database ERROR" + se.toString()).build();
