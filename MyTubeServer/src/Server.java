@@ -10,7 +10,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
-import java.net.ProtocolException;
 import java.net.URL;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.Files;
@@ -33,10 +32,10 @@ public class Server extends UnicastRemoteObject implements IServer{
 	private Map<String, Integer> map_directorio = new HashMap<String, Integer>();
 	private Map<String, String> file_extensions = new HashMap<String, String>();
 	private List<IClient> clients = new ArrayList<IClient>();
-	private List<IServer> servers = new ArrayList<IServer>();
 	private Map<String, IClient> logins= new HashMap<String, IClient>();
 	private int num_server = 0;
 	private String url_server;
+	private String webservice_ip;
 
 	protected Server() throws RemoteException {
 		super();
@@ -48,7 +47,7 @@ public class Server extends UnicastRemoteObject implements IServer{
 		String pwd = user_client.getPassword();
 		System.out.println("REGISTERING USER:"+name);
 		try {
-			URL url = new URL ("http://localhost:8080/MyTubeWebserviceWeb/rest/user");
+			URL url = new URL ("http://"+webservice_ip+":8080/MyTubeWebserviceWeb/rest/user");
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 			conn.setDoOutput(true);
             conn.setRequestMethod("POST");
@@ -81,7 +80,7 @@ public class Server extends UnicastRemoteObject implements IServer{
 		String pwd = user_client.getPassword();
 		System.out.println("LOGIN USER:"+name);
 		try {
-			URL url = new URL ("http://localhost:8080/MyTubeWebserviceWeb/rest/user/"+name);
+			URL url = new URL ("http://"+webservice_ip+":8080/MyTubeWebserviceWeb/rest/user/"+name);
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 			conn.setRequestMethod("GET");
 			conn.setRequestProperty("Accept", "application/json");
@@ -111,25 +110,13 @@ public class Server extends UnicastRemoteObject implements IServer{
 	@Override
 	public int login(IClient user) throws RemoteException {
 		clients.add(user);
-		for(IServer sv: servers) {
-			sv.login(user);
-		}
 		return 0;
-	}
-	@Override
-	public String globalDownload(String name) throws RemoteException{
-		if(!map_directorio.containsKey(name)) {
-			return null;
-		}
-		else{
-			return this.url_server;
-		}
 	}
 	
 	@Override
 	public String getUrl() throws RemoteException {
 		try {
-			URL url = new URL ("http://localhost:8080/MyTubeWebserviceWeb/rest/user");
+			URL url = new URL ("http://"+webservice_ip+":8080/MyTubeWebserviceWeb/rest/user");
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 			conn.setRequestMethod("POST");
 			conn.setRequestProperty("Accept", MediaType.APPLICATION_JSON);
@@ -164,7 +151,7 @@ public class Server extends UnicastRemoteObject implements IServer{
 			int id_vid = map_directorio.get(name);
 			String ext = file_extensions.get(name);
 			String path = System.getProperty("user.dir") + File.separator + "BBDD" + File.separator +  id_vid;
-			File file = new File(path + File.separator + id_vid + ext);
+			File file = new File(path + File.separator + name + ext);
 			byte buffer[] = new byte[(int)file.length()];
 			BufferedInputStream input = new BufferedInputStream(new FileInputStream(file));
 			input.read(buffer,0,buffer.length);
@@ -183,7 +170,7 @@ public class Server extends UnicastRemoteObject implements IServer{
 	public String getServerDownload(String name) throws RemoteException {
 		if(!map_directorio.containsKey(name)) {
 			try {
-				URL url = new URL ("http://localhost:8080/MyTubeWebserviceWeb/rest/video/"+name);
+				URL url = new URL ("http://"+webservice_ip+":8080/MyTubeWebserviceWeb/rest/video/"+name);
 				HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 				conn.setRequestMethod("GET");
 				conn.setRequestProperty("Accept", "application/json");
@@ -201,7 +188,11 @@ public class Server extends UnicastRemoteObject implements IServer{
 				BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
 				String output = br.readLine();
 				conn.disconnect();
-				return output;
+				Gson gs = new Gson();
+				VideoData vid_data = gs.fromJson(output, VideoData.class);
+				String url_server = vid_data.getVid_url();
+				String title = vid_data.getVid_title();
+				return url_server+";"+title;
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -216,7 +207,7 @@ public class Server extends UnicastRemoteObject implements IServer{
 	@Override
 	public int upload(String name, String description, byte[] data, String ext, IClient user) throws RemoteException {
 		try {
-			URL url = new URL ("http://localhost:8080/MyTubeWebserviceWeb/rest/video");
+			URL url = new URL ("http://"+webservice_ip+":8080/MyTubeWebserviceWeb/rest/video");
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 			conn.setDoOutput(true);
             conn.setRequestMethod("POST");
@@ -248,7 +239,7 @@ public class Server extends UnicastRemoteObject implements IServer{
 			System.out.println(path);
 			
 			new File(path).mkdir();
-			String pathFile = path + File.separator + Integer.parseInt(id_video) + ext;
+			String pathFile = path + File.separator + name + ext;
 			FileOutputStream vid_file = new FileOutputStream(pathFile);
 			vid_file.write(data);
 			vid_file.close();
@@ -266,7 +257,7 @@ public class Server extends UnicastRemoteObject implements IServer{
 	public ArrayList<String> searchByWord(String description) throws RemoteException {
 		System.out.println("SEARCHING BY:" + description);
 		try {
-			URL url = new URL ("http://localhost:8080/MyTubeWebserviceWeb/rest/videos/title/"+description);
+			URL url = new URL ("http://"+webservice_ip+":8080/MyTubeWebserviceWeb/rest/videos/title/"+description);
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 			conn.setRequestMethod("GET");
 			conn.setRequestProperty("Accept", "application/json");
@@ -292,10 +283,11 @@ public class Server extends UnicastRemoteObject implements IServer{
 		return null;
 	}
 	
+	@Override
 	public String searchByID(String id) throws RemoteException {
 		System.out.println("SEARCHING ID:" + id);
 		try {
-			URL url = new URL ("http://localhost:8080/MyTubeWebserviceWeb/rest/videos/id/"+id);
+			URL url = new URL ("http://"+webservice_ip+":8080/MyTubeWebserviceWeb/rest/videos/id/"+id);
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 			conn.setRequestMethod("GET");
 			conn.setRequestProperty("Accept", "application/json");
@@ -315,8 +307,6 @@ public class Server extends UnicastRemoteObject implements IServer{
 		return null;
 	}
 	
-	
-
 	
 	public void loadDB(File f) {
 		File[] dir = f.listFiles(new FileFilter() {
@@ -350,7 +340,7 @@ public class Server extends UnicastRemoteObject implements IServer{
 	@Override
 	public boolean modifyTitle(String title, String new_title, IClient user) throws RemoteException{
 		try {
-			URL url = new URL ("http://localhost:8080/MyTubeWebserviceWeb/rest/video/"+title);
+			URL url = new URL ("http://"+webservice_ip+":8080/MyTubeWebserviceWeb/rest/video/"+title+"/modify");
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 			conn.setDoOutput(true);
             conn.setRequestMethod("PUT");
@@ -368,16 +358,25 @@ public class Server extends UnicastRemoteObject implements IServer{
             if(status != 200){
             	return false;
             }
-            //COSAS A MODIFICAR
             int id_video = map_directorio.get(title);
-            map_directorio.remove(title);
-            map_directorio.put(new_title, id_video);
+            String path = System.getProperty("user.dir") + File.separator + "BBDD" + File.separator + id_video;
             
-            String ext = file_extensions.get(title);
-            file_extensions.remove(title);
-            file_extensions.put(new_title, ext);
-            return true;
-            
+            File oldfile = new File(path+File.separator+title+file_extensions.get(title));
+            File newfile =  new File(path+File.separator+new_title+file_extensions.get(title));
+            if(oldfile.renameTo(newfile)){
+            	System.out.println("File renamed in server");
+                map_directorio.remove(title);
+                map_directorio.put(new_title, id_video);
+                
+                String ext = file_extensions.get(title);
+                file_extensions.remove(title);
+                file_extensions.put(new_title, ext);
+                return true;
+            }
+            else{
+            	System.out.println("ERROR!! File NOT renamed in server");
+            	return false;
+            }
 		} catch (IOException e) {
 			e.printStackTrace();
 			return false;
@@ -392,9 +391,10 @@ public class Server extends UnicastRemoteObject implements IServer{
 			Path source = Paths.get(System.getProperty("user.dir") + File.separator + "BBDD" + File.separator
 					+  id_video);
 			Path file_source = Paths.get(System.getProperty("user.dir") + File.separator + "BBDD" + File.separator
-					+  id_video + File.separator + id_video + file_extensions.get(title));
+					+  id_video + File.separator + title + file_extensions.get(title));
 			try {
-				URL url = new URL ("http://localhost:8080/MyTubeWebserviceWeb/rest/video/"+title);
+				title = title.replace(" ", "+");
+				URL url = new URL ("http://"+webservice_ip+":8080/MyTubeWebserviceWeb/rest/video/"+title+"/remove");
 				HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 				conn.setDoOutput(true);
 	            conn.setRequestMethod("DELETE");
@@ -408,6 +408,7 @@ public class Server extends UnicastRemoteObject implements IServer{
 	            os.write(video.getBytes());
 	            os.flush();
 	            int status = conn.getResponseCode();
+	            System.out.println(status);
 	            conn.disconnect();
 	            if(status != 200){
 	            	return false;
@@ -437,26 +438,15 @@ public class Server extends UnicastRemoteObject implements IServer{
 			num_server += 1;
 			String url_new = url+"/MyTube"+num_server;
 			Naming.bind(url_new, sv);
-			sv.setServerList(servers);
 			sv.setUrl(url_new);
-			for(IServer server_slave: servers) {
-				server_slave.addServer(sv);
-			}
-			servers.add(sv);
-			System.out.println("SERVER ADDDDDDDED");
+			System.out.println("SERVER ADDED");
 			return url_new;
 		} catch (MalformedURLException | RemoteException | AlreadyBoundException e) {
 			e.printStackTrace();
 			return "ERROR";
 		}
 	}
-	@Override
-	public void setServerList(List<IServer> servers) throws RemoteException{
-		this.servers = servers;
-	}
-	
-	@Override
-	public void addServer(IServer sv) throws RemoteException{
-		this.servers.add(sv);
+	public void setWebservice(String ip) throws RemoteException{
+		this.webservice_ip = ip;
 	}
 }

@@ -17,6 +17,9 @@ public class MainServer {
 			String ip = br.readLine();
 			System.out.print("Introduce Server port:");
 			String portNum = (br.readLine()).trim();
+			System.out.print("Introduce WEBSERVICE IP:");
+			String ws_ip = br.readLine();
+
 			int RMIPortNum = Integer.parseInt(portNum);
 	        boolean master = startRegistry(RMIPortNum);
 	        String url = "//"+ip+":"+RMIPortNum;
@@ -26,6 +29,7 @@ public class MainServer {
 	        	Server sv = new Server();
 	        	Naming.bind(master_url, sv);
 	        	sv.setUrl(master_url);
+	        	sv.setWebservice(ws_ip);
 	        	start_BBDD(sv);
 	        }else {
 	        	Server sv = new Server();
@@ -51,7 +55,7 @@ public class MainServer {
 	private static boolean startRegistry(int RMIPortNum) throws RemoteException{
 		try {
 			Registry registry = LocateRegistry.getRegistry(RMIPortNum);
-			registry.list( );  // This call will throw an exception
+			registry.list();  // This call will throw an exception
 			return false;
 		}
 		catch (RemoteException e) { 
