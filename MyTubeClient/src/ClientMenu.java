@@ -21,6 +21,7 @@ import java.rmi.RemoteException;
 import java.util.ArrayList;
 import javax.swing.JCheckBox;
 import javax.swing.JRadioButton;
+import javax.swing.JTextArea;
 
 public class ClientMenu {
 
@@ -41,6 +42,7 @@ public class ClientMenu {
 	private String pwd;
 	private IServer server;
 	private IClient user_client;
+	private JTextArea textField_desc;
 
 	/**
 	 * Launch the application.
@@ -308,11 +310,11 @@ public class ClientMenu {
 		
 		JLabel lblPathUpload = new JLabel("");
 		lblPathUpload.setHorizontalAlignment(SwingConstants.CENTER);
-		lblPathUpload.setBounds(10, 96, 458, 14);
+		lblPathUpload.setBounds(10, 85, 458, 14);
 		UploadPanel.add(lblPathUpload);
 
 		JButton btnSelectFile = new JButton("Select File..");
-		btnSelectFile.setBounds(167, 62, 134, 23);
+		btnSelectFile.setBounds(161, 62, 134, 23);
 		btnSelectFile.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent arg0) {
@@ -320,15 +322,39 @@ public class ClientMenu {
 				lblPathUpload.setText(uploadFile.getAbsolutePath());
 			}
 		});
+		
+		JLabel lblDesc = new JLabel("Description");
+		lblDesc.setBounds(21, 132, 87, 14);
+		UploadPanel.add(lblDesc);
+		
+		JLabel lblUploadCorrecto = new JLabel("");
+		lblUploadCorrecto.setFont(new Font("Tahoma", Font.BOLD, 11));
+		lblUploadCorrecto.setForeground(Color.GREEN);
+		lblUploadCorrecto.setBounds(305, 185, 163, 19);
+		UploadPanel.add(lblUploadCorrecto);
 		UploadPanel.add(btnSelectFile);
+		
+		textField_desc = new JTextArea();
+		textField_desc.setBounds(107, 109, 250, 61);
+		UploadPanel.add(textField_desc);
+		textField_desc.setColumns(10);
 		
 		JButton btnUpload_1 = new JButton("Upload");
 		btnUpload_1.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				String title_name = textField.getText();
+				String description = textField_desc.getText();
 				if((title_name.length() > 0) && (uploadFile != null)) {
-					MainClient.uploadVideo2(server, uploadFile, title_name, user_client);
+					boolean success = MainClient.uploadVideo2(server, uploadFile, title_name, description, user_client);
+					if(success){
+						lblUploadCorrecto.setText("UPLOADED CORRECTLY!");
+						lblUploadCorrecto.setForeground(Color.green);
+					
+					}else{
+						lblUploadCorrecto.setText("UPLOADED ERROR!");
+						lblUploadCorrecto.setForeground(Color.RED);
+					}
 				}
 				else {
 					lblPathUpload.setForeground(Color.RED);
@@ -336,7 +362,7 @@ public class ClientMenu {
 				}
 			}
 		});
-		btnUpload_1.setBounds(167, 125, 122, 52);
+		btnUpload_1.setBounds(173, 181, 122, 23);
 		UploadPanel.add(btnUpload_1);
 		
 		
@@ -345,8 +371,6 @@ public class ClientMenu {
 		lblUploadMode.setHorizontalAlignment(SwingConstants.CENTER);
 		lblUploadMode.setBounds(179, 0, 116, 25);
 		UploadPanel.add(lblUploadMode);
-		
-
 		
 		username_field = new JTextField();
 		username_field.setBounds(180, 61, 106, 20);
@@ -557,10 +581,16 @@ public class ClientMenu {
 		btnDownload_1.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				MainClient.downloadVideo(server, downloadTitle.getText());
-				progressBar.setForeground(Color.GREEN);
-				progressBar.setValue(10);
-				downloadLabel.setText("· Video downloaded ·");
+				boolean success = MainClient.downloadVideo(server, downloadTitle.getText());
+				if(success){
+					progressBar.setForeground(Color.GREEN);
+					progressBar.setValue(10);
+					downloadLabel.setForeground(Color.GREEN);
+					downloadLabel.setText("· Video downloaded ·");
+				}else{
+					downloadLabel.setForeground(Color.red);
+					downloadLabel.setText("· Download ERROR ·");
+				}
 				
 			}
 		});
@@ -590,6 +620,7 @@ public class ClientMenu {
 				lblSearchResults.setText("");
 				lblYouNeedTo.setVisible(false);
 				lblErrorLogin.setText("");
+				lblUploadCorrecto.setText("");
 				CardLayout cl = (CardLayout)CARD.getLayout();
 				cl.show(CARD, "Menu");
 			}

@@ -85,7 +85,7 @@ public class MainClient {
 		}
 		return null;
 	}
-	protected static boolean uploadVideo2(IServer server, File selectedFile, String title, IClient user) {
+	protected static boolean uploadVideo2(IServer server, File selectedFile, String title, String description, IClient user) {
 		try {
 			
 			System.out.println("Selected file : " + selectedFile.getAbsolutePath());
@@ -96,7 +96,7 @@ public class MainClient {
 			input.read(buffer,0,buffer.length);
 			input.close();
 			
-			int correct = server.upload(title,"TEST desc", buffer, ext, user);
+			int correct = server.upload(title, description, buffer, ext, user);
 			if (correct == 0){
 				System.out.println("--> SE HA SUBIDO CORRECTAMENTE ");
 				return true;
@@ -110,7 +110,11 @@ public class MainClient {
 	protected static boolean downloadVideo(IServer server, String title) {
 		try {
 			String sv_url = server.getServerDownload(title);
-			IServer server_download = (IServer) Naming.lookup("//"+sv_url);
+			if(!sv_url.contains("//")){
+				return false;
+			}
+			System.out.println("rmi:"+sv_url);
+			IServer server_download = (IServer) Naming.lookup("rmi:"+sv_url);
 			
 			byte[] filedata = server_download.download(title);
 			String path = System.getProperty("user.dir") + File.separator + "Videos";
