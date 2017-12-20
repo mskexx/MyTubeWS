@@ -252,7 +252,36 @@ public class Server extends UnicastRemoteObject implements IServer{
 		}
 		return -1;
 	}
-
+	@Override
+	public ArrayList<String> searchByUser(String user) throws RemoteException {
+		System.out.println("SEARCHING USER VIDEOS: "+user);
+		try {
+			URL url = new URL ("http://"+webservice_ip+":8080/MyTubeWebserviceWeb/rest/videos/user/"+user);
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestMethod("GET");
+			conn.setRequestProperty("Accept", "application/json");
+		
+			if(conn.getResponseCode() != 200){
+				conn.disconnect();
+				System.out.println("Error on request");
+				return null;
+			}
+			
+			BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+			String output = br.readLine();
+			conn.disconnect();
+			
+			Gson gs = new Gson();
+			String[] titles = gs.fromJson(output, String[].class);
+			ArrayList<String> videos = new ArrayList<>(Arrays.asList(titles));
+			System.out.println(output);
+			return videos;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
 	@Override
 	public ArrayList<String> searchByWord(String description) throws RemoteException {
 		System.out.println("SEARCHING BY:" + description);
