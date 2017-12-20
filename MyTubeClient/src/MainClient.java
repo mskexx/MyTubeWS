@@ -1,16 +1,13 @@
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
-import java.util.List;
 
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -88,7 +85,7 @@ public class MainClient {
 		}
 		return null;
 	}
-	protected static boolean uploadVideo2(IServer server, File selectedFile, String title, String description, IClient user) {
+	protected static int uploadVideo2(IServer server, File selectedFile, String title, String description, IClient user) {
 		try {
 			
 			System.out.println("Selected file : " + selectedFile.getAbsolutePath());
@@ -100,14 +97,14 @@ public class MainClient {
 			input.close();
 			
 			int correct = server.upload(title, description, buffer, ext, user);
-			if (correct == 0){
+			if (correct > 0){
 				System.out.println("--> SE HA SUBIDO CORRECTAMENTE ");
-				return true;
+				return correct;
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		return false;
+		return -1;
 	}
 	
 	protected static boolean downloadVideo(IServer server, String title) {
@@ -146,6 +143,15 @@ public class MainClient {
 			e.printStackTrace();
 		}
 		return null;
+	}
+	
+	protected static ArrayList<String> searchByUsername(IServer server, String user_name) throws RemoteException {
+		try {
+			return server.searchByUser(user_name);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return new ArrayList<String>();
 	}
 	protected static String searchVideoID(IServer server, String id) throws RemoteException {
 		try {

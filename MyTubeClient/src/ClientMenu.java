@@ -1,25 +1,20 @@
 import java.awt.EventQueue;
-
 import javax.swing.JFrame;
 import javax.swing.JTextField;
 import javax.swing.JPanel;
 import javax.swing.JLabel;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
-import javax.swing.JDialog;
-
 import java.awt.Color;
 import java.awt.Font;
 import javax.swing.SwingConstants;
 import java.awt.CardLayout;
-import javax.swing.JPasswordField;
 import javax.swing.JProgressBar;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
-import javax.swing.JCheckBox;
 import javax.swing.JRadioButton;
 import javax.swing.JTextArea;
 
@@ -248,9 +243,15 @@ public class ClientMenu {
 		rdbtnById.setBounds(346, 126, 109, 23);
 		SearchPanel.add(rdbtnById);
 		
+		JRadioButton rdbtnByUser = new JRadioButton("By User");
+		rdbtnByUser.setHorizontalAlignment(SwingConstants.LEFT);
+		rdbtnByUser.setBounds(346, 152, 109, 23);
+		//SearchPanel.add(rdbtnByUser);
+		
 		ButtonGroup video_group = new ButtonGroup();
 		video_group.add(rdbtnById);
 		video_group.add(rdbtnByTitle);
+		video_group.add(rdbtnByUser);
 		
 		JLabel lblSearchResults = new JLabel("");
 		lblSearchResults.setBounds(38, 100, 275, 104);
@@ -273,8 +274,11 @@ public class ClientMenu {
 						if(res_id != null)
 							results.add(res_id);
 					}
-					else {
+					else if(rdbtnByTitle.isSelected()) {
 						results = MainClient.searchVideo(server, searched);
+					}else{
+						results = MainClient.searchByUsername(server, searched);
+						System.out.println(results);
 					}
 					String text_titles = "<html>----[RESULTS FOR  "+searched+"]----";
 					for(String x: results) {
@@ -346,10 +350,10 @@ public class ClientMenu {
 				String title_name = textField.getText();
 				String description = textField_desc.getText();
 				if((title_name.length() > 0) && (uploadFile != null)) {
-					boolean success = MainClient.uploadVideo2(server, uploadFile, title_name, description, user_client);
-					if(success){
-						lblUploadCorrecto.setText("UPLOADED CORRECTLY!");
-						lblUploadCorrecto.setForeground(Color.green);
+					int success = MainClient.uploadVideo2(server, uploadFile, title_name, description, user_client);
+					if(success>0){
+						lblUploadCorrecto.setText("ID:"+String.valueOf(success)+" --UPLOADED CORRECTLY!");
+						//lblUploadCorrecto.setForeground(Color.green);
 					
 					}else{
 						lblUploadCorrecto.setText("UPLOADED ERROR!");
@@ -403,7 +407,7 @@ public class ClientMenu {
 				try {
 					user = username_field.getText();
 					pwd = passwordField.getText();
-					user_client = new Client(user, pwd);
+					user_client = new ClientObj(user, pwd);
 					System.out.println(pwd.toString());
 					boolean succes = MainClient.login(server, user_client);
 					if(succes) {
@@ -430,7 +434,7 @@ public class ClientMenu {
 				try {
 					user = username_field.getText();
 					pwd = passwordField.getText();
-					user_client = new Client(user, pwd);
+					user_client = new ClientObj(user, pwd);
 					int succes = MainClient.register(server, user_client);
 					System.out.println(succes);
 					if(succes == 0) {
