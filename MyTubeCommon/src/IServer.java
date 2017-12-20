@@ -1,6 +1,5 @@
 import java.rmi.*;
 import java.util.ArrayList;
-import java.util.List;
 
 /**
  * This is a remote interface.
@@ -32,6 +31,8 @@ public interface IServer extends Remote {
 	
 	public ArrayList<String> searchByWord(String description) throws RemoteException;
 	
+	public ArrayList<String> searchByUser(String user) throws RemoteException;
+
 	public String searchByID(String id) throws RemoteException;
 	
 	public int disconnect(IClient user) throws RemoteException;
