@@ -20,7 +20,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import com.google.gson.*;
 
 @RequestScoped
 @Path("")
@@ -118,10 +117,10 @@ public class WebService {
 		try {
 			Statement st = getStatement();
 			System.out.println("[SEARCH BY WORD] "+title);
-			ResultSet rs = st.executeQuery("SELECT title FROM mytube_videos WHERE title LIKE '%"+title+"%' OR description LIKE '%"+title+"%';");
+			ResultSet rs = st.executeQuery("SELECT title, id_video FROM mytube_videos WHERE UPPER(title) LIKE UPPER('%"+title+"%') OR UPPER(description) LIKE UPPER('%"+title+"%');");
 			List<String> videos = new ArrayList<>();
 			while(rs.next()){		
-				videos.add(rs.getString("title"));
+				videos.add("Id: "+rs.getString("id_video")+" - "+rs.getString("title"));
 			}
 			return Response.status(200).entity(videos).build();
 			
@@ -151,16 +150,16 @@ public class WebService {
 
 	//GET (Search videos USER)
 	@GET
-	@Path("/videos/user/{user}")
+	@Path("/videos/user/{username}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response searchVideosByUser(@PathParam("user") String user){
+	public Response searchVideosByUser(@PathParam("username") String name){
 		try {
 			Statement st = getStatement();
-			System.out.println("[SEARCH BY USER] "+ user);
-			ResultSet rs = st.executeQuery("SELECT title FROM mytube_videos WHERE username_owner='"+user+"';");
+			System.out.println("[SEARCH BY USER] "+ name);
+			ResultSet rs = st.executeQuery("SELECT title, id_video FROM mytube_videos WHERE username_owner='"+name+"';");
 			List<String> videos = new ArrayList<>();
 			while(rs.next()){		
-				videos.add(rs.getString("title"));
+				videos.add("Id:"+rs.getString("id_video")+":"+rs.getString("title"));
 			}
 			return Response.status(200).entity(videos).build();
 			
@@ -194,7 +193,6 @@ public class WebService {
 				PreparedStatement state = con.prepareStatement("INSERT INTO mytube_servers(url_server) VALUES (?) RETURNING id_server");
 				state.setString(1, url);
 				state.execute();
-				System.out.println("QUERY HECHA");
 				ResultSet rs_return = state.getResultSet();
 				rs_return.next();
 				id_server = rs_return.getInt("id_server");
