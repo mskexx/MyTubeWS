@@ -245,7 +245,7 @@ public class Server extends UnicastRemoteObject implements IServer{
 			vid_file.close();
 				
 			System.out.println("Se ha subido " + name);
-			return 0;
+			return Integer.parseInt(id_video);
 
 		} catch (IOException e) {
 			e.printStackTrace();
