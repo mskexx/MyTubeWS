@@ -7,8 +7,6 @@ import java.util.ArrayList;
  */
 
 public interface IServer extends Remote {
-	public int login(IClient user) throws RemoteException;
-	
 	public int loginUser(IClient user_client) throws RemoteException;
 	
 	public int registerUser(IClient user_client) throws RemoteException;
@@ -34,8 +32,6 @@ public interface IServer extends Remote {
 	public ArrayList<String> searchByUser(String user) throws RemoteException;
 
 	public String searchByID(String id) throws RemoteException;
-	
-	public int disconnect(IClient user) throws RemoteException;
 	
 	public String addMe(IServer sv, String url) throws RemoteException;
 
