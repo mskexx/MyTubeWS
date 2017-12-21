@@ -21,7 +21,6 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import javax.ws.rs.core.MediaType;
 import com.google.gson.*;
@@ -31,8 +30,6 @@ public class Server extends UnicastRemoteObject implements IServer{
 	private static final long serialVersionUID = 1L;
 	private Map<String, Integer> map_directorio = new HashMap<String, Integer>();
 	private Map<String, String> file_extensions = new HashMap<String, String>();
-	private List<IClient> clients = new ArrayList<IClient>();
-	private Map<String, IClient> logins= new HashMap<String, IClient>();
 	private int num_server = 0;
 	private String url_server;
 	private String webservice_ip;
@@ -97,7 +94,6 @@ public class Server extends UnicastRemoteObject implements IServer{
 			String[] u = output.split(";");
 
 			if(pwd.equals(u[1])){
-				logins.put(name, user_client);
 				return 0;
 			}
 			return -1;
@@ -105,12 +101,6 @@ public class Server extends UnicastRemoteObject implements IServer{
 			e.printStackTrace();
 		}
 		return -1;
-	}
-	//TODO
-	@Override
-	public int login(IClient user) throws RemoteException {
-		clients.add(user);
-		return 0;
 	}
 	
 	@Override
@@ -359,12 +349,6 @@ public class Server extends UnicastRemoteObject implements IServer{
 		System.out.println(map_directorio);
 	}
 	
-
-	@Override
-	public int disconnect(IClient user) throws RemoteException {
-		clients.remove(user);
-		return 0;
-	}
 	
 	@Override
 	public boolean modifyTitle(String title, String new_title, IClient user) throws RemoteException{
