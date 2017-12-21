@@ -159,7 +159,7 @@ public class WebService {
 			ResultSet rs = st.executeQuery("SELECT title, id_video FROM mytube_videos WHERE username_owner='"+name+"';");
 			List<String> videos = new ArrayList<>();
 			while(rs.next()){		
-				videos.add("Id:"+rs.getString("id_video")+":"+rs.getString("title"));
+				videos.add("Id:"+rs.getString("id_video")+" --> "+rs.getString("title"));
 			}
 			return Response.status(200).entity(videos).build();
 			
@@ -292,21 +292,6 @@ public class WebService {
 			
 		} catch (SQLException se) {
 			return Response.status(500).entity("Database ERROR" + se.toString()).build();
-		}
-	}
-	
-	//TEST WS
-	@Path("/text")
-	@GET
-	@Produces(MediaType.TEXT_PLAIN)
-	public String hello(){
-		try {
-			Statement st = getStatement();
-			ResultSet rs = st.executeQuery("SELECT username FROM mytube_users;");
-			return rs.toString();
-			
-		} catch (SQLException se) {
-			return "NOOOPE";
 		}
 	}
 }
