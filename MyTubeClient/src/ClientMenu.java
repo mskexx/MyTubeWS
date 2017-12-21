@@ -246,7 +246,7 @@ public class ClientMenu {
 		JRadioButton rdbtnByUser = new JRadioButton("By User");
 		rdbtnByUser.setHorizontalAlignment(SwingConstants.LEFT);
 		rdbtnByUser.setBounds(346, 152, 109, 23);
-		//SearchPanel.add(rdbtnByUser);
+		SearchPanel.add(rdbtnByUser);
 		
 		ButtonGroup video_group = new ButtonGroup();
 		video_group.add(rdbtnById);
@@ -353,7 +353,7 @@ public class ClientMenu {
 					int success = MainClient.uploadVideo2(server, uploadFile, title_name, description, user_client);
 					if(success>0){
 						lblUploadCorrecto.setText("ID:"+String.valueOf(success)+" --UPLOADED CORRECTLY!");
-						//lblUploadCorrecto.setForeground(Color.green);
+						lblUploadCorrecto.setForeground(Color.green);
 					
 					}else{
 						lblUploadCorrecto.setText("UPLOADED ERROR!");
